@@ -6,7 +6,7 @@ const CustomRuntimeBenchmarkConfigs = {
     "pallet": {
         title: "Benchmark Runtime Pallet",
         branchCommand: [
-            'cargo run --release',
+            '{cargo_path}cargo run --release',
             '--features=runtime-benchmarks',
             '--manifest-path={manifest_path}',
             '--',
@@ -40,6 +40,7 @@ async function benchRepo(app, config){
         return errorResult(`Not allowed to use #&|; in the command!`);
     }
 
+    const cargoPath = process.env.CARGO_PATH || '';
     const manifestPath = process.env.MANIFEST_PATH || 'node/Cargo.toml';
     const benchOutput = process.env.BENCH_PALLET_OUTPUT_FILE || 'weights.rs';
     const hbsTemplate = process.env.BENCH_PALLET_HBS_TEMPLATE || '.maintain/pallet-weight-template.hbs';
@@ -52,6 +53,7 @@ async function benchRepo(app, config){
     cargoCommand = cargoCommand.replace("{bench_output}", benchOutput);
     cargoCommand = cargoCommand.replace("{hbs_template}", hbsTemplate);
     cargoCommand = cargoCommand.replace("{pallet_name}", palletName);
+    cargoCommand = cargoCommand.replace("{cargo_path}", cargoPath);
 
     const missing = checkRuntimeBenchmarkCommand(cargoCommand);
 
@@ -70,7 +72,11 @@ async function benchRepo(app, config){
 }
 
 async function cloneAndSync(context){
-    let githubRepo = `https://github.com/${context.config.owner}/${context.config.repo}`;
+    let githubRepo = `git@github.com/${context.config.owner}/${context.config.repo}.git`;
+    if (context.config.pushToken) {
+        // IF push token configured - use https
+        githubRepo = `https://github.com/${context.config.owner}/${context.config.repo}`;
+    }
 
     var {error} = context.runTask(`git clone ${githubRepo} ${context.temp_dir}`, `Cloning git repository ${githubRepo} ...`, false);
 
@@ -92,6 +98,8 @@ async function cloneAndSync(context){
     var { error, stderr } = context.runTask(`git reset --hard origin/${context.config.branch}`, `Resetting ${context.config.branch} hard...`);
     if (error) return errorResult(stderr);
 
+  /*
+    // Note: This is disabled - we dont want to auto merge master into the branch - consider making this as configurable option!
     // Merge master branch
     var { error, stderr } = context.runTask(`git merge origin/${context.config.baseBranch}`, `Merging branch ${context.config.baseBranch}`);
 
@@ -101,7 +109,7 @@ async function cloneAndSync(context){
         context.runTask(`git push https://${context.config.pushToken}@github.com/${context.config.owner}/${context.config.repo}.git HEAD`, `Pushing merge with pushToken.`);
     } else {
         context.runTask(`git push`, `Pushing merge.`);
-    }
+    }*/
 
     return true;
 }
@@ -139,7 +147,7 @@ async function runBench(command, context){
         context.runTask(`git add ${weightsPath}`, `Adding new files.`);
         context.runTask(`git commit -m "Weights update for ${context.palletName} pallet"`, `Committing changes.`);
 
-        if (config.pushToken) {
+        if (context.config.pushToken) {
             context.runTask(`git push https://${context.config.pushToken}@github.com/${context.config.owner}/${context.config.repo}.git HEAD`, `Pushing commit with pushToken.`);
         } else {
             context.runTask(`git push origin ${context.config.branch}`, `Pushing commit.`);
