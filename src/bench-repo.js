@@ -72,7 +72,7 @@ async function benchRepo(app, config){
 }
 
 async function cloneAndSync(context){
-    let githubRepo = `git@github.com/${context.config.owner}/${context.config.repo}.git`;
+    let githubRepo = `git@github.com:${context.config.owner}/${context.config.repo}.git`;
     if (context.config.pushToken) {
         // IF push token configured - use https
         githubRepo = `https://github.com/${context.config.owner}/${context.config.repo}`;
