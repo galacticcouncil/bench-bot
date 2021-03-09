@@ -1,11 +1,14 @@
 
 const { benchBranch, benchmarkRuntime } = require("./bench");
 
-let allowedUsers = process.env.ALLOWED_USERS || "";
-allowedUsers = allowedUsers.split(",").map(Number).filter(item => item);
+let allowedUsers = process.env.ALLOWED_USERS;
+if (allowedUsers) {
+  allowedUsers = allowedUsers.split(",").map(Number).filter(item => item);
+}
 
+// Allow only selected users or if not specified - allow any.
 function isAllowed(senderId) {
-  return allowedUsers.includes(senderId);
+  return allowedUsers === undefined || allowedUsers.includes(senderId);
 }
 
 module.exports = app => {
