@@ -1,14 +1,32 @@
 
-var { benchBranch, benchmarkRuntime } = require("./bench");
+const { benchBranch, benchmarkRuntime } = require("./bench");
+
+let allowedUsers = process.env.ALLOWED_USERS || "";
+allowedUsers = allowedUsers.split(",").filter( (item) => item !== "").map((item) => Number(item.trim())).filter((item) => !Number.isNaN(item));
+
+function isAllowed(senderId) {
+  return allowedUsers.includes(senderId);
+}
 
 module.exports = app => {
   app.log(`base branch: ${process.env.BASE_BRANCH}`);
 
   app.on('issue_comment', async context => {
-
     let commentText = context.payload.comment.body;
 
     if (!commentText.startsWith("/bench")) {
+      return;
+    }
+
+    if (! isAllowed(context.payload.sender.id)){
+      app.log(`User not allowed ${context.payload.sender.id}`)
+      const repo = context.payload.repository.name;
+      const owner = context.payload.repository.owner.login;
+      const comment_id = context.payload.comment.id;
+      context.github.issues.updateComment({
+        owner, repo, comment_id,
+        body: `Denied. User is not allowed to execute benchmark.`
+      });
       return;
     }
 
