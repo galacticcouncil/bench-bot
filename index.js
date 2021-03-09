@@ -2,7 +2,7 @@
 const { benchBranch, benchmarkRuntime } = require("./bench");
 
 let allowedUsers = process.env.ALLOWED_USERS || "";
-allowedUsers = allowedUsers.split(",").map((item) => Number(item.trim())).filter((item) => !Number.isNaN(item) && item !== 0);
+allowedUsers = allowedUsers.split(",").map(Number).filter(item => item);
 
 function isAllowed(senderId) {
   return allowedUsers.includes(senderId);
